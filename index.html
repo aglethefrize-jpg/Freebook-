@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E-Book Club | Plateforme Cloud</title>
+
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- FedaPay SDK Integration -->
+  <script src="https://cdn.fedapay.com/checkout.js?v=1.1.7"></script>
+
+  <!-- Firebase v9 Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #0b132b;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-solid: #1e293b;
+      --accent-color: #38bdf8;
+      --accent-hover: #00f2fe;
+      --accent-text: #0b132b;
+      --text-main: #ffffff;
+      --text-muted: #94a3b8;
+      --border-color: rgba(255, 255, 255, 0.12);
+      --danger-color: #ef4444;
+      --success-color: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding-bottom: 60px;
+    }
+
+    header {
+      background: rgba(11, 19, 43, 0.85);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+
+    .brand i {
+      font-size: 1.8rem;
+      color: var(--accent-color);
+    }
+
+    .brand-text h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+    }
+
+    .brand-text span {
+      font-size: 0.65rem;
+      color: var(--accent-color);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      display: block;
+      font-weight: 700;
+    }
+
+    .user-status {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 20px;
+      background: var(--accent-color);
+      color: var(--accent-text);
+      font-weight: 700;
+      border: 1px solid var(--border-color);
+    }
+
+    .user-identify-bar {
+      background: rgba(15, 23, 42, 0.4);
+      padding: 0.6rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .user-identify-bar input {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 0.3rem 0.6rem;
+      color: white;
+      font-size: 0.8rem;
+      outline: none;
+      width: 180px;
+    }
+
+    .user-identify-bar input::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .btn-inline {
+      background: var(--accent-color);
+      color: var(--accent-text);
+      border: none;
+      border-radius: 6px;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
+    .hero {
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      background: radial-gradient(circle at top, rgba(56, 189, 248, 0.25) 0%, var(--bg-color) 70%);
+    }
+
+    .hero-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      background: var(--accent-color);
+      color: var(--accent-text);
+      border-radius: 50px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+    }
+
+    .hero h2 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.75rem;
+      color: #ffffff;
+    }
+
+    .hero p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 500px;
+      margin: 0 auto 1.5rem;
+      line-height: 1.5;
+    }
+
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.75rem;
+      max-width: 600px;
+      margin: 0 auto 1.5rem;
+    }
+
+    .plan-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      padding: 1rem 0.5rem;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .plan-card.active {
+      border-color: var(--accent-color);
+      background: var(--accent-color);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.5);
+    }
+
+    .plan-duration {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+
+    .plan-card.active .plan-duration {
+      color: var(--accent-text);
+      opacity: 0.75;
+    }
+
+    .plan-price {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .plan-card.active .plan-price {
+      color: var(--accent-text);
+    }
+
+    .btn-pay {
+      background: var(--accent-color);
+      color: var(--accent-text);
+      font-weight: 700;
+      width: 100%;
+      max-width: 400px;
+      padding: 0.9rem;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-pay:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 0 28px rgba(0, 242, 254, 0.55);
+    }
+
+    .btn-pay:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .container {
+      padding: 0 1.5rem;
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin: 2rem 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .book-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .book-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .book-cover-container {
+      width: 100%;
+      aspect-ratio: 2/3;
+      background: var(--card-solid);
+      position: relative;
+    }
+
+    .book-cover {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .book-details {
+      padding: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .book-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      line-height: 1.3;
+    }
+
+    .book-author {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .book-actions {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .btn-action {
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+      text-decoration: none;
+    }
+
+    .btn-audio {
+      background: var(--accent-color);
+      color: var(--accent-text);
+      font-weight: 700;
+    }
+
+    .btn-pdf {
+      background: rgba(255, 255, 255, 0.15);
+      color: var(--text-main);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(5px);
+      z-index: 200;
+      padding: 1rem;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 600px;
+      border-radius: 16px;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .admin-modal .modal-content {
+      max-width: 500px;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      margin-bottom: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-main);
+      font-size: 0.85rem;
+    }
+
+    .form-control::placeholder {
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--accent-color);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--text-muted);
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 12px;
+      border: 1px dashed var(--border-color);
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+
+    .helper-text {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+      text-align: center;
+    }
+
+    /* AVIS & COMMENTAIRES */
+    .avis-summary {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      text-align: center;
+      margin-bottom: 1.25rem;
+    }
+
+    .avis-summary-score {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent-color);
+      display: block;
+    }
+
+    .avis-stars-static {
+      font-size: 1.2rem;
+      color: var(--accent-color);
+      letter-spacing: 2px;
+      margin: 0.25rem 0;
+    }
+
+    .avis-form-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+
+    .avis-stars-picker {
+      font-size: 1.6rem;
+      color: rgba(255, 255, 255, 0.25);
+      margin-bottom: 1rem;
+      cursor: pointer;
+    }
+
+    .avis-stars-picker i {
+      margin-right: 0.3rem;
+      transition: color 0.15s;
+    }
+
+    .avis-stars-picker i.filled {
+      color: var(--accent-color);
+    }
+
+    .avis-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+
+    .avis-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1rem 1.1rem;
+    }
+
+    .avis-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.4rem;
+    }
+
+    .avis-card-name {
+      font-weight: 700;
+      font-size: 0.85rem;
+    }
+
+    .avis-card-stars {
+      color: var(--accent-color);
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+    }
+
+    .avis-card-comment {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 0.3rem;
+    }
+
+    .avis-card-date {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      opacity: 0.7;
+    }
+
+    .avis-delete-btn {
+      background: none;
+      border: none;
+      color: var(--danger-color);
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand" id="adminTrigger">
+      <i class="fa-solid fa-book-bookmark"></i>
+      <div class="brand-text">
+        <h1>E-BOOK CLUB</h1>
+        <span>Plateforme Cloud</span>
+      </div>
+    </div>
+    <div class="user-status" id="userPassStatus">
+      <i class="fa-solid fa-circle-xmark" style="color: var(--danger-color);"></i> Non connecté
+    </div>
+  </header>
+
+  <!-- BARRE D'IDENTIFICATION CLIENT — Authentification réelle par SMS (Firebase Phone Auth) -->
+  <div class="user-identify-bar" id="identifyBar">
+
+    <!-- Étape 1 : saisie du numéro -->
+    <div id="phoneStep" style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+      <i class="fa-solid fa-mobile-screen-button"></i>
+      <span style="font-size:0.8rem;">+229</span>
+      <input type="tel" id="userPhoneInput" placeholder="Numéro Mobile Money (ex: 97000000)">
+      <button class="btn-inline" id="sendCodeBtn" onclick="sendVerificationCode()">Recevoir le code</button>
+    </div>
+
+    <!-- Étape 2 : saisie du code reçu par SMS (masquée par défaut) -->
+    <div id="codeStep" style="display:none; align-items:center; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+      <i class="fa-solid fa-shield-halved"></i>
+      <input type="text" id="smsCodeInput" placeholder="Code reçu par SMS" inputmode="numeric">
+      <button class="btn-inline" onclick="confirmVerificationCode()">Valider</button>
+      <button class="btn-link" onclick="resetPhoneStep()">Changer de numéro</button>
+    </div>
+
+    <!-- Étape 3 : utilisateur connecté (masquée par défaut) -->
+    <div id="loggedStep" style="display:none; align-items:center; gap:0.75rem;">
+      <span style="font-size:0.8rem;" id="loggedPhoneLabel"></span>
+      <button class="btn-link" onclick="logoutUser()">Se déconnecter</button>
+    </div>
+  </div>
+  <div id="recaptcha-container"></div>
+
+  <!-- HERO & OFFRES VIP -->
+  <section class="hero">
+    <span class="hero-badge">Offres VIP & Express</span>
+    <h2>Rejoignez le Club VIP</h2>
+    <p>Lectures et résumés audio illimités de 20 min directement sur votre mobile.</p>
+
+    <div class="plans-grid">
+      <div class="plan-card" onclick="selectPlan(this, 300, '24h')">
+        <div class="plan-duration">24H Express</div>
+        <div class="plan-price">300F</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this, 1200, 'weekly')">
+        <div class="plan-duration">7 Jours</div>
+        <div class="plan-price">1200F</div>
+      </div>
+      <div class="plan-card active" onclick="selectPlan(this, 3500, 'monthly')">
+        <div class="plan-duration">1 Mois</div>
+        <div class="plan-price">3500F</div>
+      </div>
+      <div class="plan-card" onclick="selectPlan(this, 25000, 'annual')">
+        <div class="plan-duration">1 An</div>
+        <div class="plan-price">25000F</div>
+      </div>
+    </div>
+
+    <button class="btn-pay" onclick="triggerFedaPay()">
+      <i class="fa-solid fa-mobile-screen"></i> S'abonner par Mobile Money
+    </button>
+    <p class="helper-text">Vous devez vérifier votre numéro par SMS avant de payer.</p>
+  </section>
+
+  <!-- CATALOGUE -->
+  <main class="container">
+    <div class="section-title">
+      <span>Catalogue Global Cloud (<span id="bookCount">0</span> livres)</span>
+    </div>
+
+    <div class="book-grid" id="catalogGrid">
+      <div class="empty-state" style="grid-column: 1 / -1;">
+        <i class="fa-solid fa-book-open"></i>
+        <p>Catalogue vide.<br>Connectez-vous à la console d'administration pour ajouter vos œuvres.</p>
+      </div>
+    </div>
+
+    <!-- AVIS & COMMENTAIRES -->
+    <div class="section-title" style="margin-top: 3rem;">
+      <span>Avis & Commentaires</span>
+    </div>
+
+    <div class="avis-summary" id="avisSummary">
+      <span class="avis-summary-score">—</span>
+      <div class="avis-stars-static" id="avisSummaryStars">☆☆☆☆☆</div>
+      <span class="helper-text" id="avisSummaryCount" style="margin:0;">Aucun avis pour le moment</span>
+    </div>
+
+    <div class="avis-form-card" id="avisFormCard">
+      <p class="helper-text" id="avisFormHint" style="margin-bottom:0.75rem; text-align:left;">
+        Vérifiez votre numéro et souscrivez un Pass pour pouvoir laisser un avis.
+      </p>
+      <div id="avisFormFields" style="display:none;">
+        <div class="avis-stars-picker" id="avisStarsPicker">
+          <i class="fa-solid fa-star" data-value="1"></i>
+          <i class="fa-solid fa-star" data-value="2"></i>
+          <i class="fa-solid fa-star" data-value="3"></i>
+          <i class="fa-solid fa-star" data-value="4"></i>
+          <i class="fa-solid fa-star" data-value="5"></i>
+        </div>
+        <div class="form-group">
+          <label>Votre nom (optionnel — sinon affiché comme "Client vérifié")</label>
+          <input type="text" class="form-control" id="avisNameInput" maxlength="60" placeholder="ex: Awa D.">
+        </div>
+        <div class="form-group">
+          <label>Votre commentaire</label>
+          <textarea class="form-control" id="avisCommentInput" rows="3" maxlength="500" placeholder="Votre expérience avec E-Book Club..."></textarea>
+        </div>
+        <button class="btn-pay" id="avisSubmitBtn" onclick="submitAvis()" style="width:auto; padding: 0.6rem 1.5rem;">Publier mon avis</button>
+      </div>
+    </div>
+
+    <div class="avis-list" id="avisList"></div>
+  </main>
+
+  <!-- MODAL AUDIO PLAYER -->
+  <div class="modal" id="audioModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('audioModal')"><i class="fa-solid fa-xmark"></i></button>
+      <h3 id="audioModalTitle" style="margin-bottom: 0.5rem;">Résumé Audio (20 min)</h3>
+      <p id="audioModalAuthor" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1.5rem;"></p>
+      <audio id="embeddedAudioPlayer" controls controlsList="nodownload" style="width: 100%; margin-top: 1rem;"></audio>
+    </div>
+  </div>
+
+  <!-- MODAL ADMIN -->
+  <div class="modal admin-modal" id="adminModal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeModal('adminModal')"><i class="fa-solid fa-xmark"></i></button>
+
+      <div id="adminLoginForm">
+        <h3 style="margin-bottom: 0.5rem;">Accès Administrateur</h3>
+        <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem;">Connexion sécurisée via Firebase Auth</p>
+        <div class="form-group">
+          <label>Adresse E-mail Admin</label>
+          <input type="email" class="form-control" id="adminEmail" placeholder="admin@votre-domaine.com">
+        </div>
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <input type="password" class="form-control" id="adminPass" placeholder="••••••••">
+        </div>
+        <button class="btn-pay" style="width: 100%; margin-top: 0.5rem;" onclick="loginAdminFirebase()">Connexion Administration</button>
+      </div>
+
+      <div id="adminDashboard" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <h3>Ajouter un Livre</h3>
+          <button onclick="logoutAdmin()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 1.25rem; font-size: 0.8rem; display:flex; align-items:center; gap:0.5rem;">
+          <i class="fa-solid fa-users" style="color: var(--accent-color);"></i>
+          Visiteurs uniques : <strong id="visitorCountValue">…</strong>
+        </div>
+
+        <form id="addBookForm" onsubmit="saveBookToCloud(event)">
+          <div class="form-group">
+            <label>Titre de l'œuvre</label>
+            <input type="text" class="form-control" id="bookTitleInput" required placeholder="ex: L'Homme le plus riche de Babylone">
+          </div>
+          <div class="form-group">
+            <label>Auteur</label>
+            <input type="text" class="form-control" id="bookAuthorInput" required placeholder="ex: George S. Clason">
+          </div>
+          <div class="form-group">
+            <label>Image de couverture</label>
+            <input type="file" class="form-control" id="bookCoverFile" accept="image/*" required>
+          </div>
+          <div class="form-group">
+            <label>Fichier Audio (résumé ~20 min)</label>
+            <input type="file" class="form-control" id="bookAudioFile" accept="audio/*" required>
+          </div>
+          <div class="form-group">
+            <label>Fichier PDF / Livre complet</label>
+            <input type="file" class="form-control" id="bookPdfFile" accept="application/pdf" required>
+          </div>
+          <div id="uploadProgress" style="display:none; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;"></div>
+          <button type="submit" class="btn-pay" id="saveBookBtn" style="width: 100%; margin-top: 0.5rem;">Publier dans le Catalogue Cloud</button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // CONFIGURATION FIREBASE CLOUD
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDUNs4AIw_kPS2HY6p_0WmvqjcUHKuE1k",
+      authDomain: "e-book-club-3f6c6.firebaseapp.com",
+      projectId: "e-book-club-3f6c6",
+      storageBucket: "e-book-club-3f6c6.firebasestorage.app",
+      messagingSenderId: "151304113559",
+      appId: "1:151304113559:web:b8d7df78c85c3649d2c8d2"
+    };
+
+    // Indicatif pays fixe (adapte-le si tes clients ne sont pas au Bénin).
+    // Doit rester identique à COUNTRY_CODE dans functions/index.js.
+    const COUNTRY_CODE = '229';
+
+    firebase.initializeApp(firebaseConfig);
+    const cloudDb = firebase.firestore();
+    const auth = firebase.auth();
+    const storage = firebase.storage();
+    const cloudFunctions = firebase.functions();
+
+    let selectedAmount = 3500;
+    let selectedPlanType = 'monthly';
+    let books = [];
+    let mySubscription = null;   // { planType, expiresAt, ... } — uniquement la donnée de l'utilisateur connecté
+    let confirmationResult = null;
+    let subscriptionUnsubscribe = null;
+    let isAdminUser = false;
+    let myAvis = null;
+    let selectedStars = 0;
+    let avisEntries = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      syncCatalog();
+      recordVisit();
+      listenToAvis();
+
+      // Si l'utilisateur était déjà vérifié lors d'une précédente visite,
+      // Firebase le reconnecte automatiquement ici (pas besoin de re-saisir le code SMS).
+      auth.onAuthStateChanged((user) => {
+        if (user && user.phoneNumber) {
+          showLoggedStep(user.phoneNumber);
+          listenToMySubscription(user.phoneNumber);
+          loadMyAvis(user.phoneNumber);
+        } else {
+          showPhoneStep();
+          mySubscription = null;
+          myAvis = null;
+          if (subscriptionUnsubscribe) subscriptionUnsubscribe();
+          updateStatusBadge();
+          updateAvisFormVisibility();
+          renderCatalog();
+        }
+      });
+
+      document.getElementById('avisStarsPicker').addEventListener('click', (e) => {
+        const star = e.target.closest('i[data-value]');
+        if (!star) return;
+        selectedStars = parseInt(star.dataset.value, 10);
+        renderStarPicker();
+      });
+    });
+
+    // ---------- COMPTEUR DE VISITEURS (visible par l'admin uniquement) ----------
+    // Chaque navigateur reçoit un identifiant anonyme stable stocké en local :
+    // une même personne qui revient plusieurs fois ne compte qu'une seule fois.
+    // Le détail des visites (dates, identifiants) n'est lisible par personne
+    // d'autre que l'admin — voir firestore.rules, collection "visits".
+
+    function recordVisit() {
+      let visitorId = localStorage.getItem('visitor_id');
+      const isNewVisitor = !visitorId;
+      if (!visitorId) {
+        visitorId = 'v_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem('visitor_id', visitorId);
+      }
+      const payload = { lastSeen: firebase.firestore.FieldValue.serverTimestamp() };
+      if (isNewVisitor) payload.firstSeen = firebase.firestore.FieldValue.serverTimestamp();
+      cloudDb.collection('visits').doc(visitorId).set(payload, { merge: true }).catch((e) => {
+        console.warn('Enregistrement de visite impossible :', e.message);
+      });
+    }
+
+    // Appelée une fois l'admin connecté (voir loginAdminFirebase). Utilise une
+    // requête d'agrégation (count()) : un seul document lu côté serveur, quel
+    // que soit le nombre de visiteurs — peu coûteux même à grande échelle.
+    async function loadVisitorCount() {
+      const el = document.getElementById('visitorCountValue');
+      try {
+        const snap = await cloudDb.collection('visits').count().get();
+        el.textContent = snap.data().count;
+      } catch (e) {
+        console.error(e);
+        el.textContent = 'indisponible';
+      }
+    }
+
+
+    // ---------- AUTHENTIFICATION PAR SMS (remplace le simple champ texte non vérifié) ----------
+
+    function getRecaptcha() {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', { size: 'invisible' });
+      }
+      return window.recaptchaVerifier;
+    }
+
+    function sendVerificationCode() {
+      const raw = document.getElementById('userPhoneInput').value.replace(/\D/g, '');
+      if (raw.length < 6) {
+        alert("Merci de saisir un numéro Mobile Money valide.");
+        return;
+      }
+      const fullNumber = `+${COUNTRY_CODE}${raw}`;
+
+      auth.signInWithPhoneNumber(fullNumber, getRecaptcha())
+        .then((result) => {
+          confirmationResult = result;
+          document.getElementById('phoneStep').style.display = 'none';
+          document.getElementById('codeStep').style.display = 'flex';
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("Impossible d'envoyer le code SMS. Vérifiez le numéro et réessayez.");
+        });
+    }
+
+    function confirmVerificationCode() {
+      const code = document.getElementById('smsCodeInput').value.trim();
+      if (!confirmationResult || !code) return;
+
+      confirmationResult.confirm(code)
+        .then(() => {
+          document.getElementById('smsCodeInput').value = '';
+        })
+        .catch((error) => {
+          console.error(error);
+          alert("Code incorrect. Réessayez.");
+        });
+    }
+
+    function resetPhoneStep() {
+      document.getElementById('codeStep').style.display = 'none';
+      document.getElementById('phoneStep').style.display = 'flex';
+      document.getElementById('smsCodeInput').value = '';
+    }
+
+    function showPhoneStep() {
+      document.getElementById('phoneStep').style.display = 'flex';
+      document.getElementById('codeStep').style.display = 'none';
+      document.getElementById('loggedStep').style.display = 'none';
+    }
+
+    function showLoggedStep(phoneNumber) {
+      document.getElementById('phoneStep').style.display = 'none';
+      document.getElementById('codeStep').style.display = 'none';
+      document.getElementById('loggedStep').style.display = 'flex';
+      document.getElementById('loggedPhoneLabel').textContent = `Connecté : ${phoneNumber}`;
+    }
+
+    function logoutUser() {
+      auth.signOut();
+    }
+
+    // ---------- ABONNEMENT (lu depuis Firestore, jamais écrit par le client) ----------
+
+    function listenToMySubscription(phoneNumber) {
+      if (subscriptionUnsubscribe) subscriptionUnsubscribe();
+      subscriptionUnsubscribe = cloudDb.collection('subscribers').doc(phoneNumber)
+        .onSnapshot((doc) => {
+          mySubscription = doc.exists ? doc.data() : null;
+          updateStatusBadge();
+          updateAvisFormVisibility();
+          renderCatalog();
+        }, (err) => {
+          console.error('Erreur de lecture abonnement :', err);
+        });
+    }
+
+    function isPassActive() {
+      return !!mySubscription && mySubscription.expiresAt > Date.now();
+    }
+
+    function updateStatusBadge() {
+      const statusBadge = document.getElementById('userPassStatus');
+      if (!auth.currentUser) {
+        statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color: var(--danger-color);"></i> Non connecté`;
+        return;
+      }
+      if (isPassActive()) {
+        const remainingMs = mySubscription.expiresAt - Date.now();
+        const hoursLeft = Math.ceil(remainingMs / (1000 * 60 * 60));
+        statusBadge.innerHTML = `<i class="fa-solid fa-circle-check" style="color: var(--success-color);"></i> Pass Actif (${hoursLeft > 24 ? Math.ceil(hoursLeft / 24) + 'j' : hoursLeft + 'h'})`;
+      } else {
+        statusBadge.innerHTML = `<i class="fa-solid fa-circle-xmark" style="color: var(--danger-color);"></i> Sans Pass / Expiré`;
+      }
+    }
+
+    // ---------- CATALOGUE (métadonnées publiques uniquement — pas de lien pdf/audio ici) ----------
+
+    function syncCatalog() {
+      cloudDb.collection('oeuvres').onSnapshot((snapshot) => {
+        books = [];
+        snapshot.forEach((doc) => books.push({ id: doc.id, ...doc.data() }));
+        renderCatalog();
+      });
+    }
+
+    function selectPlan(element, amount, planType) {
+      document.querySelectorAll('.plan-card').forEach(card => card.classList.remove('active'));
+      element.classList.add('active');
+      selectedAmount = amount;
+      selectedPlanType = planType;
+    }
+
+    // ---------- PAIEMENT ----------
+    // Le client ne peut plus jamais activer un Pass lui-même : `activatePass` a été
+    // supprimé. Seule la Cloud Function `fedapayWebhook`, après vérification de la
+    // signature FedaPay, écrit dans `subscribers/{phone}`. Ici on se contente
+    // d'attendre que cette écriture arrive (généralement en quelques secondes).
+
+    function triggerFedaPay() {
+      const user = auth.currentUser;
+      if (!user || !user.phoneNumber) {
+        alert("Vérifiez d'abord votre numéro par SMS en haut du site.");
+        return;
+      }
+      const localNumber = user.phoneNumber.replace(`+${COUNTRY_CODE}`, '');
+
+      FedaPay.init({
+        public_key: 'REMPLACE_PAR_TA_VRAIE_CLE_PUBLIQUE_LIVE',
+        transaction: {
+          amount: selectedAmount,
+          description: `Abonnement E-Book Club Pass (${selectedPlanType})`
+        },
+        customer: {
+          phone_number: { number: localNumber },
+          email: `${localNumber}@ebookclub.com`,
+          lastname: 'Abonné'
+        },
+        onComplete: function (response) {
+          if (response.reason === 'CHECKOUT_COMPLETE') {
+            alert("Paiement reçu ! Activation de votre Pass en cours (quelques secondes)...");
+            // Rien d'autre à faire ici : listenToMySubscription() détectera automatiquement
+            // l'activation dès que la Cloud Function aura vérifié le paiement côté serveur.
+          }
+        }
+      }).open();
+    }
+
+    // ---------- RENDU DU CATALOGUE ----------
+
+    function renderCatalog() {
+      const catalogGrid = document.getElementById('catalogGrid');
+      const bookCount = document.getElementById('bookCount');
+      bookCount.textContent = books.length;
+
+      if (books.length === 0) {
+        catalogGrid.innerHTML = `
+          <div class="empty-state" style="grid-column: 1 / -1;">
+            <i class="fa-solid fa-book-open"></i>
+            <p>Catalogue vide.<br>Connectez-vous à la console d'administration pour ajouter vos œuvres.</p>
+          </div>`;
+        return;
+      }
+
+      const active = isPassActive();
+
+      catalogGrid.innerHTML = books.map((book) => `
+        <div class="book-card">
+          <div class="book-cover-container">
+            <img src="${book.cover}" class="book-cover" alt="${book.title}" onerror="this.src='https://via.placeholder.com/150x225?text=Couverture'">
+          </div>
+          <div class="book-details">
+            <div class="book-title">${book.title}</div>
+            <div class="book-author">${book.author}</div>
+            <div class="book-actions">
+              <button class="btn-action btn-audio" onclick="playAudio('${book.id}', '${escapeQuotes(book.title)}', '${escapeQuotes(book.author)}')">
+                <i class="fa-solid ${active ? 'fa-headphones' : 'fa-lock'}"></i> Écouter (20m)
+              </button>
+              <button class="btn-action btn-pdf" onclick="openPdf('${book.id}')">
+                <i class="fa-solid ${active ? 'fa-file-pdf' : 'fa-lock'}"></i> Lire le PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function escapeQuotes(str) {
+      return String(str).replace(/'/g, "\\'");
+    }
+
+    function alertPassRequired() {
+      if (!auth.currentUser) {
+        alert("Vérifiez d'abord votre numéro par SMS en haut du site, puis souscrivez à un Pass.");
+      } else {
+        alert("Accès restreint ou abonnement expiré. Veuillez souscrire ou renouveler votre Pass.");
+      }
+    }
+
+    // Le lien réel du fichier n'est jamais stocké côté client. À chaque écoute
+    // / lecture, on demande à la Cloud Function un lien temporaire (10 min) —
+    // elle revérifie le Pass à ce moment précis, donc un abonnement expiré ou
+    // un lien réutilisé plus tard échoue automatiquement.
+
+    async function playAudio(bookId, title, author) {
+      if (!isPassActive()) { alertPassRequired(); return; }
+      try {
+        const result = await cloudFunctions.httpsCallable('getProtectedFileUrl')({ bookId, fileType: 'audio' });
+        const player = document.getElementById('embeddedAudioPlayer');
+        document.getElementById('audioModalTitle').textContent = title;
+        document.getElementById('audioModalAuthor').textContent = author;
+        player.src = result.data.url;
+        document.getElementById('audioModal').style.display = 'flex';
+        player.play();
+      } catch (e) {
+        console.error(e);
+        alertPassRequired();
+      }
+    }
+
+    async function openPdf(bookId) {
+      if (!isPassActive()) { alertPassRequired(); return; }
+      try {
+        const result = await cloudFunctions.httpsCallable('getProtectedFileUrl')({ bookId, fileType: 'pdf' });
+        window.open(result.data.url, '_blank');
+      } catch (e) {
+        console.error(e);
+        alertPassRequired();
+      }
+    }
+
+    // ---------- AVIS & COMMENTAIRES ----------
+    // Public en lecture (tout visiteur voit les avis). En écriture, réservé
+    // à un numéro vérifié par SMS ET ayant déjà souscrit au moins un Pass
+    // (voir firestore.rules, collection `avis`) — pour que ce soient de vrais
+    // avis clients, pas des commentaires laissés par n'importe qui.
+
+    function maskPhone(phone) {
+      return phone ? phone.slice(0, 4) + '••••' + phone.slice(-2) : '';
+    }
+
+    function listenToAvis() {
+      cloudDb.collection('avis').orderBy('createdAt', 'desc').limit(30)
+        .onSnapshot((snapshot) => {
+          avisEntries = [];
+          snapshot.forEach((doc) => avisEntries.push({ phone: doc.id, ...doc.data() }));
+          renderAvisSummary();
+          renderAvisList();
+        }, (err) => console.error('Erreur de lecture des avis :', err));
+    }
+
+    async function loadMyAvis(phoneNumber) {
+      try {
+        const doc = await cloudDb.collection('avis').doc(phoneNumber).get();
+        myAvis = doc.exists ? doc.data() : null;
+        if (myAvis) {
+          selectedStars = myAvis.rating;
+          document.getElementById('avisNameInput').value = myAvis.name || '';
+          document.getElementById('avisCommentInput').value = myAvis.comment || '';
+          document.getElementById('avisSubmitBtn').textContent = 'Mettre à jour mon avis';
+          renderStarPicker();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      updateAvisFormVisibility();
+    }
+
+    function updateAvisFormVisibility() {
+      const hint = document.getElementById('avisFormHint');
+      const fields = document.getElementById('avisFormFields');
+      const isCustomer = !!auth.currentUser && !!auth.currentUser.phoneNumber && !!mySubscription;
+
+      if (isCustomer) {
+        hint.style.display = 'none';
+        fields.style.display = 'block';
+      } else {
+        fields.style.display = 'none';
+        hint.style.display = 'block';
+        hint.textContent = !auth.currentUser || !auth.currentUser.phoneNumber
+          ? "Vérifiez votre numéro en haut du site pour pouvoir laisser un avis."
+          : "Réservé aux personnes ayant déjà souscrit un Pass E-Book Club.";
+      }
+    }
+
+    function renderStarPicker() {
+      document.querySelectorAll('#avisStarsPicker i').forEach((star) => {
+        star.classList.toggle('filled', parseInt(star.dataset.value, 10) <= selectedStars);
+      });
+    }
+
+    function starsToText(n) {
+      const rounded = Math.round(n);
+      return '★'.repeat(rounded) + '☆'.repeat(5 - rounded);
+    }
+
+    function renderAvisSummary() {
+      const scoreEl = document.querySelector('.avis-summary-score');
+      const starsEl = document.getElementById('avisSummaryStars');
+      const countEl = document.getElementById('avisSummaryCount');
+
+      if (avisEntries.length === 0) {
+        scoreEl.textContent = '—';
+        starsEl.textContent = '☆☆☆☆☆';
+        countEl.textContent = 'Aucun avis pour le moment';
+        return;
+      }
+
+      const avg = avisEntries.reduce((sum, a) => sum + a.rating, 0) / avisEntries.length;
+      scoreEl.textContent = avg.toFixed(1) + ' / 5';
+      starsEl.textContent = starsToText(avg);
+      countEl.textContent = `Basé sur ${avisEntries.length} avis`;
+    }
+
+    function renderAvisList() {
+      const listEl = document.getElementById('avisList');
+      if (avisEntries.length === 0) {
+        listEl.innerHTML = '';
+        return;
+      }
+      listEl.innerHTML = avisEntries.map((a) => {
+        const date = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate().toLocaleDateString('fr-FR') : "à l'instant";
+        const displayName = a.name && a.name.trim() ? a.name : `Client vérifié (${maskPhone(a.phone)})`;
+        return `
+          <div class="avis-card">
+            <div class="avis-card-header">
+              <span class="avis-card-name">${displayName}</span>
+              <span class="avis-card-stars">${starsToText(a.rating)}</span>
+            </div>
+            <div class="avis-card-comment">${a.comment}</div>
+            <div class="avis-card-header">
+              <span class="avis-card-date">${date}</span>
+              ${isAdminUser ? `<button class="avis-delete-btn" onclick="deleteAvis('${a.phone}')"><i class="fa-solid fa-trash"></i> Supprimer</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function submitAvis() {
+      const user = auth.currentUser;
+      if (!user || !user.phoneNumber || !mySubscription) {
+        alertPassRequired();
+        return;
+      }
+      if (selectedStars < 1) {
+        alert("Merci de sélectionner une note (1 à 5 étoiles).");
+        return;
+      }
+      const comment = document.getElementById('avisCommentInput').value.trim();
+      if (!comment) {
+        alert("Merci d'écrire un petit commentaire.");
+        return;
+      }
+      const name = document.getElementById('avisNameInput').value.trim();
+      const btn = document.getElementById('avisSubmitBtn');
+      btn.disabled = true;
+
+      try {
+        const payload = {
+          rating: selectedStars,
+          comment: comment.slice(0, 500),
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        if (name) payload.name = name.slice(0, 60);
+        await cloudDb.collection('avis').doc(user.phoneNumber).set(payload, { merge: true });
+        btn.textContent = 'Mettre à jour mon avis';
+        alert('Merci pour votre avis !');
+      } catch (err) {
+        alert("Erreur lors de la publication de l'avis : " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Admin uniquement (voir bouton conditionnel dans renderAvisList).
+    async function deleteAvis(phone) {
+      if (!isAdminUser) return;
+      if (!confirm("Supprimer cet avis ?")) return;
+      try {
+        await cloudDb.collection('avis').doc(phone).delete();
+      } catch (err) {
+        alert("Erreur lors de la suppression : " + err.message);
+      }
+    }
+
+    // ---------- ADMIN ----------
+
+    document.getElementById('adminTrigger').addEventListener('click', () => {
+      document.getElementById('adminModal').style.display = 'flex';
+    });
+
+    async function loginAdminFirebase() {
+      const email = document.getElementById('adminEmail').value.trim();
+      const pass = document.getElementById('adminPass').value.trim();
+
+      if (!email || !pass) {
+        alert("Veuillez saisir votre e-mail et votre mot de passe administrateur.");
+        return;
+      }
+
+      try {
+        await auth.signInWithEmailAndPassword(email, pass);
+        const tokenResult = await auth.currentUser.getIdTokenResult();
+        isAdminUser = tokenResult.claims.admin === true;
+        document.getElementById('adminLoginForm').style.display = 'none';
+        document.getElementById('adminDashboard').style.display = 'block';
+        loadVisitorCount();
+        renderAvisList();
+      } catch (error) {
+        alert("Accès refusé : Adresse e-mail ou mot de passe incorrect.");
+      }
+    }
+
+    function logoutAdmin() {
+      auth.signOut();
+      isAdminUser = false;
+      renderAvisList();
+      document.getElementById('adminDashboard').style.display = 'none';
+      document.getElementById('adminLoginForm').style.display = 'block';
+    }
+
+    // Téléverse une couverture (publique) vers Firebase Storage et renvoie son
+    // URL de téléchargement — sans risque, ces images sont censées être publiques.
+    function uploadPublicFile(path, file, label) {
+      return new Promise((resolve, reject) => {
+        const progressEl = document.getElementById('uploadProgress');
+        progressEl.style.display = 'block';
+        const task = storage.ref(path).put(file);
+        task.on('state_changed',
+          (snapshot) => {
+            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            progressEl.textContent = `Envoi ${label}… ${pct}%`;
+          },
+          (error) => reject(error),
+          async () => resolve(await task.snapshot.ref.getDownloadURL())
+        );
+      });
+    }
+
+    // Téléverse un fichier protégé (audio/PDF) et renvoie seulement son CHEMIN
+    // de stockage — jamais un lien de téléchargement. storage.rules refuse de
+    // toute façon toute lecture sur ce chemin (même pour l'admin) : seul le lien
+    // signé temporaire délivré par la Cloud Function `getProtectedFileUrl` permet
+    // d'accéder au fichier, ce qui garantit le verrouillage automatique en fin de Pass.
+    function uploadProtectedFile(path, file, label) {
+      return new Promise((resolve, reject) => {
+        const progressEl = document.getElementById('uploadProgress');
+        progressEl.style.display = 'block';
+        const task = storage.ref(path).put(file);
+        task.on('state_changed',
+          (snapshot) => {
+            const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+            progressEl.textContent = `Envoi ${label}… ${pct}%`;
+          },
+          (error) => reject(error),
+          () => resolve(path)
+        );
+      });
+    }
+
+    // Écrit les métadonnées publiques dans `oeuvres` et les CHEMINS de stockage
+    // (jamais de lien direct) dans `oeuvres_protected` (voir firestore.rules :
+    // seul un compte avec le rôle admin — attribué une fois via
+    // scripts/set-admin-claim.js — peut écrire dans ces deux collections).
+    async function saveBookToCloud(e) {
+      e.preventDefault();
+      const title = document.getElementById('bookTitleInput').value;
+      const author = document.getElementById('bookAuthorInput').value;
+      const coverFile = document.getElementById('bookCoverFile').files[0];
+      const audioFile = document.getElementById('bookAudioFile').files[0];
+      const pdfFile = document.getElementById('bookPdfFile').files[0];
+
+      if (!coverFile || !audioFile || !pdfFile) {
+        alert("Merci de sélectionner les trois fichiers (couverture, audio, PDF).");
+        return;
+      }
+
+      const bookId = title.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString(36);
+      const saveBtn = document.getElementById('saveBookBtn');
+      const progressEl = document.getElementById('uploadProgress');
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Envoi en cours…';
+
+      try {
+        const coverUrl = await uploadPublicFile(`couvertures/${bookId}-${coverFile.name}`, coverFile, 'de la couverture');
+        const audioPath = await uploadProtectedFile(`protected/${bookId}-audio-${audioFile.name}`, audioFile, 'du fichier audio');
+        const pdfPath = await uploadProtectedFile(`protected/${bookId}-pdf-${pdfFile.name}`, pdfFile, 'du PDF');
+
+        await cloudDb.collection('oeuvres').doc(bookId).set({
+          title, author, cover: coverUrl,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await cloudDb.collection('oeuvres_protected').doc(bookId).set({ audioPath, pdfPath });
+
+        document.getElementById('addBookForm').reset();
+        progressEl.style.display = 'none';
+        closeModal('adminModal');
+        alert('Livre publié avec succès dans le catalogue Cloud !');
+      } catch (err) {
+        alert("Erreur lors de la publication : " + err.message + "\n(Vérifie que le rôle admin a bien été attribué à ce compte — voir scripts/set-admin-claim.js)");
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Publier dans le Catalogue Cloud';
+      }
+    }
+
+    function closeModal(modalId) {
+      const modal = document.getElementById(modalId);
+      modal.style.display = 'none';
+      if (modalId === 'audioModal') {
+        const player = document.getElementById('embeddedAudioPlayer');
+        player.pause();
+        player.src = '';
+      }
+    }
+  </script>
+</body>
+</html>
