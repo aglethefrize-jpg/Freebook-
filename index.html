@@ -18,6 +18,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
     :root {
@@ -553,6 +554,111 @@
       cursor: pointer;
       font-size: 0.8rem;
     }
+
+    /* LECTEUR PDF PLEIN ÉCRAN (style app Livres) */
+    .pdf-reader-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 300;
+      flex-direction: column;
+    }
+
+    .pdf-reader-overlay.active {
+      display: flex;
+    }
+
+    .pdf-reader-topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: calc(0.6rem + env(safe-area-inset-top, 0px)) 1rem 0.6rem;
+      background: rgba(11, 19, 43, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .pdf-reader-close {
+      background: none;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.15rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .pdf-reader-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 0.4rem;
+    }
+
+    .pdf-reader-page-indicator {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      min-width: 3.2rem;
+      text-align: right;
+    }
+
+    .pdf-reader-canvas-wrap {
+      flex: 1;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #000;
+      padding: 0.75rem 0;
+    }
+
+    .pdf-reader-canvas-wrap canvas {
+      max-width: 100%;
+      height: auto;
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .pdf-reader-loading {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin: auto;
+    }
+
+    .pdf-reader-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      background: rgba(11, 19, 43, 0.92);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border-color);
+    }
+
+    .pdf-reader-nav-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      background: var(--accent-color);
+      color: var(--accent-text);
+      font-size: 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+
+    .pdf-reader-nav-btn:disabled {
+      opacity: 0.25;
+      box-shadow: none;
+      cursor: default;
+    }
   </style>
 </head>
 <body>
@@ -680,6 +786,23 @@
     <div class="avis-list" id="avisList"></div>
   </main>
 
+  <!-- LECTEUR PDF PLEIN ÉCRAN -->
+  <div class="pdf-reader-overlay" id="pdfReaderOverlay">
+    <div class="pdf-reader-topbar">
+      <button class="pdf-reader-close" onclick="closePdfReader()"><i class="fa-solid fa-xmark"></i></button>
+      <span class="pdf-reader-title" id="pdfReaderTitle"></span>
+      <span class="pdf-reader-page-indicator" id="pdfReaderPageIndicator">– / –</span>
+    </div>
+    <div class="pdf-reader-canvas-wrap" id="pdfReaderCanvasWrap">
+      <span class="pdf-reader-loading" id="pdfReaderLoading">Chargement…</span>
+      <canvas id="pdfReaderCanvas" style="display:none;"></canvas>
+    </div>
+    <div class="pdf-reader-nav">
+      <button class="pdf-reader-nav-btn" id="pdfPrevBtn" onclick="pdfGoToPage(-1)"><i class="fa-solid fa-minus"></i></button>
+      <button class="pdf-reader-nav-btn" id="pdfNextBtn" onclick="pdfGoToPage(1)"><i class="fa-solid fa-plus"></i></button>
+    </div>
+  </div>
+
   <!-- MODAL AUDIO PLAYER -->
   <div class="modal" id="audioModal">
     <div class="modal-content">
@@ -715,9 +838,14 @@
           <button onclick="logoutAdmin()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.8rem;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
         </div>
 
-        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 1.25rem; font-size: 0.8rem; display:flex; align-items:center; gap:0.5rem;">
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 0.6rem; font-size: 0.8rem; display:flex; align-items:center; gap:0.5rem;">
           <i class="fa-solid fa-users" style="color: var(--accent-color);"></i>
           Visiteurs uniques : <strong id="visitorCountValue">…</strong>
+        </div>
+
+        <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.6rem 0.9rem; margin-bottom: 1.25rem; font-size: 0.8rem; display:flex; align-items:center; gap:0.5rem;">
+          <i class="fa-solid fa-crown" style="color: var(--accent-color);"></i>
+          Personnes ayant souscrit un Pass : <strong id="subscriberCountValue">…</strong>
         </div>
 
         <form id="addBookForm" onsubmit="saveBookToCloud(event)">
@@ -731,15 +859,15 @@
           </div>
           <div class="form-group">
             <label>Image de couverture</label>
-            <input type="file" class="form-control" id="bookCoverFile" accept="image/*" required>
+            <input type="file" class="form-control" id="bookCoverFile" accept="image/*,.jpg,.jpeg,.png,.webp,.gif" required>
           </div>
           <div class="form-group">
             <label>Fichier Audio (résumé ~20 min)</label>
             <input type="file" class="form-control" id="bookAudioFile" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus" required>
-            </div>
+          </div>
           <div class="form-group">
             <label>Fichier PDF / Livre complet</label>
-            <input type="file" class="form-control" id="bookPdfFile" accept="application/pdf" required>
+            <input type="file" class="form-control" id="bookPdfFile" accept="application/pdf,.pdf" required>
           </div>
           <div id="uploadProgress" style="display:none; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;"></div>
           <button type="submit" class="btn-pay" id="saveBookBtn" style="width: 100%; margin-top: 0.5rem;">Publier dans le Catalogue Cloud</button>
@@ -763,6 +891,8 @@
     // Indicatif pays fixe (adapte-le si tes clients ne sont pas au Bénin).
     // Doit rester identique à COUNTRY_CODE dans functions/index.js.
     const COUNTRY_CODE = '229';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     firebase.initializeApp(firebaseConfig);
     const cloudDb = firebase.firestore();
@@ -838,8 +968,21 @@
     async function loadVisitorCount() {
       const el = document.getElementById('visitorCountValue');
       try {
-        const snap = await cloudDb.collection('visits').count().get();
-        el.textContent = snap.data().count;
+        const snap = await cloudDb.collection('visits').get();
+        el.textContent = snap.size;
+      } catch (e) {
+        console.error(e);
+        el.textContent = 'indisponible';
+      }
+    }
+
+    // Nombre total de numéros ayant déjà souscrit un Pass au moins une fois
+    // (actif ou expiré) — un document par personne dans `subscribers`.
+    async function loadSubscriberCount() {
+      const el = document.getElementById('subscriberCountValue');
+      try {
+        const snap = await cloudDb.collection('subscribers').get();
+        el.textContent = snap.size;
       } catch (e) {
         console.error(e);
         el.textContent = 'indisponible';
@@ -1029,7 +1172,7 @@
               <button class="btn-action btn-audio" onclick="playAudio('${book.id}', '${escapeQuotes(book.title)}', '${escapeQuotes(book.author)}')">
                 <i class="fa-solid ${active ? 'fa-headphones' : 'fa-lock'}"></i> Écouter (20m)
               </button>
-              <button class="btn-action btn-pdf" onclick="openPdf('${book.id}')">
+              <button class="btn-action btn-pdf" onclick="openPdf('${book.id}', '${escapeQuotes(book.title)}')">
                 <i class="fa-solid ${active ? 'fa-file-pdf' : 'fa-lock'}"></i> Lire le PDF
               </button>
             </div>
@@ -1071,15 +1214,77 @@
       }
     }
 
-    async function openPdf(bookId) {
+    // ---------- LECTEUR PDF PLEIN ÉCRAN (style app Livres) ----------
+    // Affiche page par page via PDF.js, dans l'overlay — jamais de nouvel onglet,
+    // donc jamais de perte de position ni de "réinitialisation" du site.
+    let pdfDoc = null;
+    let pdfCurrentPage = 1;
+    let pdfRendering = false;
+
+    function closePdfReader() {
+      document.getElementById('pdfReaderOverlay').classList.remove('active');
+      pdfDoc = null;
+    }
+
+    async function openPdf(bookId, title) {
       if (!isPassActive()) { alertPassRequired(); return; }
+
+      const overlay = document.getElementById('pdfReaderOverlay');
+      const canvas = document.getElementById('pdfReaderCanvas');
+      const loading = document.getElementById('pdfReaderLoading');
+      document.getElementById('pdfReaderTitle').textContent = title || '';
+      document.getElementById('pdfReaderPageIndicator').textContent = '– / –';
+      canvas.style.display = 'none';
+      loading.style.display = 'block';
+      loading.textContent = 'Chargement…';
+      overlay.classList.add('active');
+
       try {
         const result = await cloudFunctions.httpsCallable('getProtectedFileUrl')({ bookId, fileType: 'pdf' });
-        window.open(result.data.url, '_blank');
+        pdfDoc = await pdfjsLib.getDocument(result.data.url).promise;
+        pdfCurrentPage = 1;
+        loading.style.display = 'none';
+        canvas.style.display = 'block';
+        renderPdfPage(pdfCurrentPage);
       } catch (e) {
         console.error(e);
+        closePdfReader();
         alertPassRequired();
       }
+    }
+
+    async function renderPdfPage(num) {
+      if (!pdfDoc || pdfRendering) return;
+      pdfRendering = true;
+      try {
+        const page = await pdfDoc.getPage(num);
+        const canvas = document.getElementById('pdfReaderCanvas');
+        const wrap = document.getElementById('pdfReaderCanvasWrap');
+        const unscaled = page.getViewport({ scale: 1 });
+        const scale = Math.min((wrap.clientWidth - 16) / unscaled.width, 2.5);
+        const viewport = page.getViewport({ scale });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+        wrap.scrollTop = 0;
+
+        document.getElementById('pdfReaderPageIndicator').textContent = `${num} / ${pdfDoc.numPages}`;
+        document.getElementById('pdfPrevBtn').disabled = num <= 1;
+        document.getElementById('pdfNextBtn').disabled = num >= pdfDoc.numPages;
+      } catch (e) {
+        console.error(e);
+      } finally {
+        pdfRendering = false;
+      }
+    }
+
+    function pdfGoToPage(delta) {
+      if (!pdfDoc) return;
+      const next = pdfCurrentPage + delta;
+      if (next < 1 || next > pdfDoc.numPages) return;
+      pdfCurrentPage = next;
+      renderPdfPage(pdfCurrentPage);
     }
 
     // ---------- AVIS & COMMENTAIRES ----------
@@ -1258,6 +1463,7 @@
         document.getElementById('adminLoginForm').style.display = 'none';
         document.getElementById('adminDashboard').style.display = 'block';
         loadVisitorCount();
+        loadSubscriberCount();
         renderAvisList();
       } catch (error) {
         alert("Accès refusé : Adresse e-mail ou mot de passe incorrect.");
